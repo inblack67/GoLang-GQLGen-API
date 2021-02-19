@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/inblack67/GQLGenAPI/graph/generated"
 	"github.com/inblack67/GQLGenAPI/graph/model"
 	"github.com/inblack67/GQLGenAPI/mymodels"
+	"github.com/inblack67/GQLGenAPI/utils"
 )
 
 func (r *mutationResolver) RegisterUser(ctx context.Context, input model.RegisterParams) (bool, error) {
@@ -74,9 +74,11 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 
 	// not in redis yet => query goes to db
 	if getErr != nil {
+
+		defer utils.Elapsed("db query => users")()
+
 		var dbUsers []mymodels.User
 
-		fmt.Println("users => db query")
 		dbc := db.PgConn.Find(&dbUsers)
 
 		var users []*model.User
@@ -108,6 +110,8 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 		return users, dbc.Error
 	}
 
+	defer utils.Elapsed("redis query => users")()
+
 	// cached
 	var cachedUsers []*model.User
 
@@ -116,8 +120,6 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	if unmarshalErr != nil{
 		log.Fatal("unmarshalErr", unmarshalErr)
 	}
-
-	fmt.Println("users => Redis won")
 
 	return cachedUsers, nil
 }
