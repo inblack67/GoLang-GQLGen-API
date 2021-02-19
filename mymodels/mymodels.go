@@ -11,7 +11,7 @@ import (
 type User struct{
 	gorm.Model
 	ID uint `json:"-"`
-	UUID  uuid.UUID `gorm:"unique; not null; default: null;" json:"uuid,omitempty"`
+	UUID  string `gorm:"unique; not null; default: null;" json:"uuid,omitempty"`
 	Name string `json:"name,omitempty" gorm:"not null;default:null"`
 	Username string `json:"username,omitempty" gorm:"unique;not null;default:null"`
 	Email string `json:"email,omitempty" gorm:"unique;not null;default:null"`

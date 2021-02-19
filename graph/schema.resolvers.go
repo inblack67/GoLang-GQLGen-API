@@ -17,46 +17,45 @@ import (
 )
 
 func (r *mutationResolver) RegisterUser(ctx context.Context, input model.RegisterParams) (bool, error) {
+	var newUser = new(mymodels.User)
 
-				var newUser = new(mymodels.User)
+	newUser = &mymodels.User{
+		Name:     input.Name,
+		Email:    input.Email,
+		Password: input.Password,
+		Username: input.Username,
+	}
 
-				newUser = &mymodels.User{
-					Name: input.Name,
-					Email: input.Email,
-					Password: input.Password,
-					Username: input.Username,
-				}
+	validationErr := newUser.ValidateMe()
 
-				validationErr := newUser.ValidateMe()
+	if validationErr != nil {
+		return false, validationErr
+	}
 
-				if validationErr != nil{
-					return false, validationErr
-				}
+	hashedPassword, hashErr := argon2id.CreateHash(input.Password, argon2id.DefaultParams)
 
-				hashedPassword, hashErr := argon2id.CreateHash(input.Password, argon2id.DefaultParams)
+	if hashErr != nil {
+		log.Fatalf(hashErr.Error())
+	}
 
-				if hashErr != nil{
-					log.Fatalf(hashErr.Error())
-				}
+	myuuid, errUUID := uuid.NewV4()
 
-				myuuid, errUUID := uuid.NewV4()
+	if errUUID != nil {
+		log.Fatalf(errUUID.Error())
+	}
 
-				// strUUID := fmt.Sprintf("%v", myuuid)
+	strUUID := fmt.Sprintf("%v", myuuid)
 
-				if errUUID != nil{
-					log.Fatalf(errUUID.Error())
-				}
+	newUser.Password = hashedPassword
+	newUser.UUID = strUUID
 
-				newUser.Password = hashedPassword
-				newUser.UUID = myuuid
+	userCreationErr := db.PgConn.Create(&newUser).Error
 
-				userCreationErr := db.PgConn.Create(&newUser).Error
+	if userCreationErr != nil {
+		return false, userCreationErr
+	}
 
-				if userCreationErr != nil {
-					return false, userCreationErr
-				}
-
-				return true, nil
+	return true, nil
 }
 
 func (r *queryResolver) Hello(ctx context.Context) (*model.Hello, error) {
@@ -66,7 +65,24 @@ func (r *queryResolver) Hello(ctx context.Context) (*model.Hello, error) {
 }
 
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
-	panic(fmt.Errorf("not implemented"))
+	var dbUsers []mymodels.User
+	dbc := db.PgConn.Find(&dbUsers)
+
+	var users []*model.User
+
+	for _, v := range dbUsers {
+		users = append(users, &model.User{
+			Name:     v.Name,
+			Email:    v.Email,
+			Username: v.Username,
+			CreatedAt: v.CreatedAt.String(),
+			UpdatedAt: v.UpdatedAt.String(),
+			DeletedAt: v.DeletedAt.Time.String(),
+			UUID: v.UUID,
+		})
+	}
+
+	return users, dbc.Error
 }
 
 // Mutation returns generated.MutationResolver implementation.

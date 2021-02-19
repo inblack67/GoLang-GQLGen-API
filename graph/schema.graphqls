@@ -5,11 +5,11 @@ type Hello {
 type User {
   name: String!
   email: String!
-  password: String!
   username: String!
   createdAt: String!
   updatedAt: String!
   deletedAt: String!
+  uuid: String!
 }
 
 input RegisterParams {

@@ -16,9 +16,9 @@ type RegisterParams struct {
 type User struct {
 	Name      string `json:"name"`
 	Email     string `json:"email"`
-	Password  string `json:"password"`
 	Username  string `json:"username"`
 	CreatedAt string `json:"createdAt"`
 	UpdatedAt string `json:"updatedAt"`
 	DeletedAt string `json:"deletedAt"`
+	UUID      string `json:"uuid"`
 }
