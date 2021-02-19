@@ -42,6 +42,7 @@ func AuthMiddleware() func(handler http.Handler) http.Handler{
 				return
 			}
 
+			// authenticated
 			session.Options = &sessions.Options{
 				// Domain: ".domain.com",	// for prod
 				// Secure: true,	// for prod
@@ -96,9 +97,4 @@ func GetUserFromCtx (ctx context.Context) (*types.SSession, error) {
 	}
 
 	return user, nil
-}
-
-// SETSession ...
-func SETSession (data interface {}) {
-
 }
