@@ -12,8 +12,3 @@ func Elapsed(what string) func() {
 		fmt.Printf("%s took %v\n", what, time.Since(start))
 	}
 }
-
-// func main() {
-// 	defer Elapsed("page")()
-// 	time.Sleep(time.Second * 2)
-// }
