@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/inblack67/GQLGenAPI/db"
 	"github.com/inblack67/GQLGenAPI/graph/generated"
 	"github.com/inblack67/GQLGenAPI/graph/model"
+	"github.com/inblack67/GQLGenAPI/middlewares"
 	"github.com/inblack67/GQLGenAPI/mymodels"
 	"github.com/inblack67/GQLGenAPI/utils"
 )
@@ -63,9 +65,33 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 }
 
 func (r *queryResolver) Hello(ctx context.Context) (*model.Hello, error) {
+
+	myUser, err := middlewares.GetUserFromCtx(ctx)
+
+	fmt.Println("myuser lol", myUser)
+
+	if err != nil {
+		log.Fatal("not auth")
+	}
+
 	return &model.Hello{
-		Reply: "worlds",
+		Reply: myUser,
 	}, nil
+
+	// data  := ctx.Value(constants.KCurrentUser)
+	// fmt.Println("woah", data)
+
+	// reply, ok := data.(string)
+
+	// if !ok{
+	// 	return &model.Hello{
+	// 	Reply: string("worlds"),
+	// }, nil
+	// }
+
+	// return &model.Hello{
+	// 	Reply: string(reply),
+	// }, nil
 }
 
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
