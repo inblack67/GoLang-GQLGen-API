@@ -5,10 +5,15 @@ package graph
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
+	"time"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/gofrs/uuid"
+	"github.com/inblack67/GQLGenAPI/cache"
+	"github.com/inblack67/GQLGenAPI/constants"
 	"github.com/inblack67/GQLGenAPI/db"
 	"github.com/inblack67/GQLGenAPI/graph/generated"
 	"github.com/inblack67/GQLGenAPI/graph/model"
@@ -64,24 +69,57 @@ func (r *queryResolver) Hello(ctx context.Context) (*model.Hello, error) {
 }
 
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
-	var dbUsers []mymodels.User
-	dbc := db.PgConn.Find(&dbUsers)
 
-	var users []*model.User
+	cachedMarshalledUsers, getErr := cache.RedisClient.Get(context.Background(), constants.KGetUsers).Result()
 
-	for _, v := range dbUsers {
-		users = append(users, &model.User{
-			Name:     v.Name,
-			Email:    v.Email,
-			Username: v.Username,
-			CreatedAt: v.CreatedAt.String(),
-			UpdatedAt: v.UpdatedAt.String(),
-			DeletedAt: v.DeletedAt.Time.String(),
-			UUID: v.UUID,
-		})
+	// not in redis yet => query goes to db
+	if getErr != nil {
+		var dbUsers []mymodels.User
+
+		fmt.Println("users => db query")
+		dbc := db.PgConn.Find(&dbUsers)
+
+		var users []*model.User
+
+		for _, v := range dbUsers {
+			users = append(users, &model.User{
+				Name:     v.Name,
+				Email:    v.Email,
+				Username: v.Username,
+				CreatedAt: v.CreatedAt.String(),
+				UpdatedAt: v.UpdatedAt.String(),
+				DeletedAt: v.DeletedAt.Time.String(),
+				UUID: v.UUID,
+			})
+		}
+
+		marshalledUsers, marshallErr  := json.Marshal(users)
+
+		if marshallErr != nil{
+			log.Fatal("marshallErr", marshallErr)
+		}
+
+		setErr := cache.RedisClient.Set(context.Background(), constants.KGetUsers, marshalledUsers, time.Hour * 24).Err()
+
+		if setErr != nil{
+			log.Fatal("setErr", setErr)
+		}
+
+		return users, dbc.Error
 	}
 
-	return users, dbc.Error
+	// cached
+	var cachedUsers []*model.User
+
+	unmarshalErr := json.Unmarshal([]byte(cachedMarshalledUsers), &cachedUsers)
+
+	if unmarshalErr != nil{
+		log.Fatal("unmarshalErr", unmarshalErr)
+	}
+
+	fmt.Println("users => Redis won")
+
+	return cachedUsers, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

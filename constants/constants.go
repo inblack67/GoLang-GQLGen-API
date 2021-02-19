@@ -12,3 +12,6 @@ var KGetMe = "GET_ME"
 // KGetStories ...
 var KGetStories = "GET_STORIES"
 
+// KGetUsers ...
+var KGetUsers = "GET_USERS"
+
