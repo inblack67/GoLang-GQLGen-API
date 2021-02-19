@@ -15,13 +15,13 @@ var (
 
 // ConnectDB ...
 func ConnectDB() (*gorm.DB){
-	dsn := "host=localhost user=postgres password=postgres dbname=go port=5432"
+	dsn := "host=localhost user=postgres password=postgres dbname=gographql port=5432"
 	var err error
 	PgConn, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil{
 		panic(err)
 	}
-	PgConn.AutoMigrate(&mymodels.Story{}, &mymodels.User{})
+	PgConn.AutoMigrate(&mymodels.User{}, &mymodels.Story{})
 	fmt.Println("Postgres is here")
 	return PgConn
 }

@@ -6,13 +6,57 @@ package graph
 import (
 	"context"
 	"fmt"
+	"log"
 
+	"github.com/alexedwards/argon2id"
+	"github.com/gofrs/uuid"
+	"github.com/inblack67/GQLGenAPI/db"
 	"github.com/inblack67/GQLGenAPI/graph/generated"
 	"github.com/inblack67/GQLGenAPI/graph/model"
+	"github.com/inblack67/GQLGenAPI/mymodels"
 )
 
 func (r *mutationResolver) RegisterUser(ctx context.Context, input model.RegisterParams) (bool, error) {
-	panic(fmt.Errorf("not implemented"))
+
+				var newUser = new(mymodels.User)
+
+				newUser = &mymodels.User{
+					Name: input.Name,
+					Email: input.Email,
+					Password: input.Password,
+					Username: input.Username,
+				}
+
+				validationErr := newUser.ValidateMe()
+
+				if validationErr != nil{
+					return false, validationErr
+				}
+
+				hashedPassword, hashErr := argon2id.CreateHash(input.Password, argon2id.DefaultParams)
+
+				if hashErr != nil{
+					log.Fatalf(hashErr.Error())
+				}
+
+				myuuid, errUUID := uuid.NewV4()
+
+				// strUUID := fmt.Sprintf("%v", myuuid)
+
+				if errUUID != nil{
+					log.Fatalf(errUUID.Error())
+				}
+
+				newUser.Password = hashedPassword
+				newUser.UUID = myuuid
+
+				userCreationErr := db.PgConn.Create(&newUser).Error
+
+				if userCreationErr != nil {
+					return false, userCreationErr
+				}
+
+				return true, nil
 }
 
 func (r *queryResolver) Hello(ctx context.Context) (*model.Hello, error) {
