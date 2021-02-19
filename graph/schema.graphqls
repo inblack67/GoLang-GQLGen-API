@@ -2,6 +2,28 @@ type Hello {
   reply: String!
 }
 
+type User {
+  name: String!
+  email: String!
+  password: String!
+  username: String!
+  createdAt: String!
+  updatedAt: String!
+  deletedAt: String!
+}
+
+input RegisterParams {
+  name: String!
+  email: String!
+  password: String!
+  username: String!
+}
+
 type Query {
-  hello: Hello
+  hello: Hello!
+  users: [User!]!
+}
+
+type Mutation {
+  registerUser(input: RegisterParams!): Boolean!
 }

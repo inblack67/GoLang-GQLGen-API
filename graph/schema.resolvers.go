@@ -5,10 +5,15 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/inblack67/GQLGenAPI/graph/generated"
 	"github.com/inblack67/GQLGenAPI/graph/model"
 )
+
+func (r *mutationResolver) RegisterUser(ctx context.Context, input model.RegisterParams) (bool, error) {
+	panic(fmt.Errorf("not implemented"))
+}
 
 func (r *queryResolver) Hello(ctx context.Context) (*model.Hello, error) {
 	return &model.Hello{
@@ -16,7 +21,15 @@ func (r *queryResolver) Hello(ctx context.Context) (*model.Hello, error) {
 	}, nil
 }
 
+func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+// Mutation returns generated.MutationResolver implementation.
+func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

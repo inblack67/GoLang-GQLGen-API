@@ -7,6 +7,8 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/inblack67/GQLGenAPI/cache"
+	"github.com/inblack67/GQLGenAPI/db"
 	"github.com/inblack67/GQLGenAPI/graph"
 	"github.com/inblack67/GQLGenAPI/graph/generated"
 )
@@ -14,6 +16,10 @@ import (
 const defaultPort = "5000"
 
 func main() {
+
+	cache.StartRedis()
+	db.ConnectDB()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
