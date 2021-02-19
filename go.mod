@@ -10,7 +10,6 @@ require (
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/go-redis/redis/v8 v8.5.0
 	github.com/gofrs/uuid v4.0.0+incompatible
-	github.com/gorilla/sessions v1.2.1
 	github.com/rs/cors v1.7.0
 	github.com/vektah/gqlparser/v2 v2.1.0
 	gorm.io/driver/postgres v1.0.8

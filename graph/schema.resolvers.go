@@ -7,7 +7,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/alexedwards/argon2id"
@@ -67,9 +69,9 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 }
 
 func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginParams) (bool, error) {
-	_, ctxErr := middlewares.GetUserFromCtx(ctx)
+	isAuth := middlewares.IsAuthenticated(ctx)
 
-	if ctxErr == nil {
+	if isAuth {
 		return false, errors.New(constants.KNotAuthorized)
 	}
 
@@ -100,6 +102,7 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginParam
 
 	sessionData.ID = user.ID
 	sessionData.Username = user.Username
+	sessionData.UUID = user.UUID
 
 	marshalledSessionData, marshallErr := json.Marshal(sessionData)
 
@@ -107,27 +110,69 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginParam
 		return false, errors.New(marshallErr.Error())
 	}
 
-	setErr := cache.RedisClient.Set(context.Background(), constants.KAuthSession, marshalledSessionData, time.Hour*24).Err()
+	setErr := cache.RedisClient.Set(ctx, constants.KCurrentUser, marshalledSessionData, time.Hour*24).Err()
+
+	uuid, uuidErr := uuid.NewV4()
+
+	token := fmt.Sprint(uuid)
+
+	if uuidErr != nil {
+		log.Fatal(uuidErr.Error())
+	}
+
+	setErr2 := cache.RedisClient.Set(ctx, constants.KAuthSession, token, time.Hour*24).Err()
 
 	if setErr != nil {
-		return false, errors.New(setErr.Error())
+		log.Fatal(setErr.Error())
 	}
+
+	if setErr2 != nil {
+		log.Fatal(setErr2.Error())
+	}
+
+	myCtx := ctx.Value(constants.KMyContext).(types.MyCtx)
+
+	http.SetCookie(myCtx.ResponseWriter, &http.Cookie{
+		Name:     constants.KAuthSession,
+		Value:    token,
+		Expires:  time.Now().AddDate(0, 0, 1),
+		MaxAge:   int(time.Hour) * 24,
+		SameSite: http.SameSiteLaxMode,
+	})
 
 	return true, nil
 }
 
 func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
-	_, err := middlewares.GetUserFromCtx(ctx)
+	isAuth := middlewares.IsAuthenticated(ctx)
 
-	if err != nil {
-		return false, err
+	if !isAuth {
+		return false, errors.New(constants.KNotAuthenticated)
 	}
 
-	delErr := cache.RedisClient.Del(context.Background(), constants.KAuthSession).Err()
+	delErr := cache.RedisClient.Del(ctx, constants.KAuthSession).Err()
+
+	delErr2 := cache.RedisClient.Del(ctx, constants.KCurrentUser).Err()
 
 	if delErr != nil {
-		return false, delErr
+		log.Fatal(delErr)
 	}
+
+	if delErr2 != nil {
+		log.Fatal(delErr2)
+	}
+
+	myCtx := ctx.Value(constants.KMyContext).(types.MyCtx)
+
+	// delete cookie
+	http.SetCookie(myCtx.ResponseWriter, &http.Cookie{
+		Name:     constants.KAuthSession,
+		Value:    "nil",
+		Expires:  time.Now(),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
+	})
 
 	return true, nil
 }
@@ -139,7 +184,7 @@ func (r *queryResolver) Hello(ctx context.Context) (*model.Hello, error) {
 }
 
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
-	cachedMarshalledUsers, getErr := cache.RedisClient.Get(context.Background(), constants.KGetUsers).Result()
+	cachedMarshalledUsers, getErr := cache.RedisClient.Get(ctx, constants.KGetUsers).Result()
 
 	// not in redis yet => query goes to db
 	if getErr != nil {
@@ -170,7 +215,7 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 			log.Fatal("marshallErr", marshallErr)
 		}
 
-		setErr := cache.RedisClient.Set(context.Background(), constants.KGetUsers, marshalledUsers, time.Hour*24).Err()
+		setErr := cache.RedisClient.Set(ctx, constants.KGetUsers, marshalledUsers, time.Hour*24).Err()
 
 		if setErr != nil {
 			log.Fatal("setErr", setErr)
@@ -193,35 +238,23 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	return cachedUsers, nil
 }
 
-func (r *queryResolver) GetMe(ctx context.Context) (*model.User, error) {
+func (r *queryResolver) GetMe(ctx context.Context) (*model.GetMeResponse, error) {
+	isAuth := middlewares.IsAuthenticated(ctx)
+
+	if !isAuth {
+		return nil, errors.New(constants.KNotAuthenticated)
+	}
+
 	ctxUser, err := middlewares.GetUserFromCtx(ctx)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var user = new(mymodels.User)
+	sendUser := new(model.GetMeResponse)
 
-	dbErr := db.PgConn.Find(&user, ctxUser.ID).Error
-
-	if dbErr != nil {
-		return nil, dbErr
-	}
-
-	notFoundErr := errors.Is(err, gorm.ErrRecordNotFound)
-	if notFoundErr {
-		return nil, errors.New("User does not exist")
-	}
-
-	sendUser := new(model.User)
-
-	sendUser.Name = user.Name
-	sendUser.Email = user.Email
-	sendUser.Username = user.Username
-	sendUser.CreatedAt = user.CreatedAt.String()
-	sendUser.UpdatedAt = user.UpdatedAt.String()
-	sendUser.DeletedAt = user.DeletedAt.Time.String()
-	sendUser.UUID = user.UUID
+	sendUser.ID = ctxUser.UUID
+	sendUser.Username = ctxUser.Username
 
 	return sendUser, nil
 }

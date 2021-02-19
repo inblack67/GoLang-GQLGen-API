@@ -43,6 +43,11 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	GetMeResponse struct {
+		ID       func(childComplexity int) int
+		Username func(childComplexity int) int
+	}
+
 	Hello struct {
 		Reply func(childComplexity int) int
 	}
@@ -78,7 +83,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Hello(ctx context.Context) (*model.Hello, error)
 	Users(ctx context.Context) ([]*model.User, error)
-	GetMe(ctx context.Context) (*model.User, error)
+	GetMe(ctx context.Context) (*model.GetMeResponse, error)
 }
 
 type executableSchema struct {
@@ -95,6 +100,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "GetMeResponse.id":
+		if e.complexity.GetMeResponse.ID == nil {
+			break
+		}
+
+		return e.complexity.GetMeResponse.ID(childComplexity), true
+
+	case "GetMeResponse.username":
+		if e.complexity.GetMeResponse.Username == nil {
+			break
+		}
+
+		return e.complexity.GetMeResponse.Username(childComplexity), true
 
 	case "Hello.reply":
 		if e.complexity.Hello.Reply == nil {
@@ -294,10 +313,15 @@ input LoginParams {
   username: String!
 } 
 
+type GetMeResponse {
+  username: String!
+  id: String!
+}
+
 type Query {
   hello: Hello!
   users: [User!]!
-  getMe: User
+  getMe: GetMeResponse
 }
 
 type Mutation {
@@ -394,6 +418,76 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _GetMeResponse_username(ctx context.Context, field graphql.CollectedField, obj *model.GetMeResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "GetMeResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Username, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _GetMeResponse_id(ctx context.Context, field graphql.CollectedField, obj *model.GetMeResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "GetMeResponse",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
 
 func (ec *executionContext) _Hello_reply(ctx context.Context, field graphql.CollectedField, obj *model.Hello) (ret graphql.Marshaler) {
 	defer func() {
@@ -646,9 +740,9 @@ func (ec *executionContext) _Query_getMe(ctx context.Context, field graphql.Coll
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.User)
+	res := resTmp.(*model.GetMeResponse)
 	fc.Result = res
-	return ec.marshalOUser2ᚖgithubᚗcomᚋinblack67ᚋGQLGenAPIᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalOGetMeResponse2ᚖgithubᚗcomᚋinblack67ᚋGQLGenAPIᚋgraphᚋmodelᚐGetMeResponse(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2134,6 +2228,38 @@ func (ec *executionContext) unmarshalInputRegisterParams(ctx context.Context, ob
 
 // region    **************************** object.gotpl ****************************
 
+var getMeResponseImplementors = []string{"GetMeResponse"}
+
+func (ec *executionContext) _GetMeResponse(ctx context.Context, sel ast.SelectionSet, obj *model.GetMeResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, getMeResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GetMeResponse")
+		case "username":
+			out.Values[i] = ec._GetMeResponse_username(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "id":
+			out.Values[i] = ec._GetMeResponse_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var helloImplementors = []string{"Hello"}
 
 func (ec *executionContext) _Hello(ctx context.Context, sel ast.SelectionSet, obj *model.Hello) graphql.Marshaler {
@@ -2927,6 +3053,13 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return graphql.MarshalBoolean(*v)
 }
 
+func (ec *executionContext) marshalOGetMeResponse2ᚖgithubᚗcomᚋinblack67ᚋGQLGenAPIᚋgraphᚋmodelᚐGetMeResponse(ctx context.Context, sel ast.SelectionSet, v *model.GetMeResponse) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._GetMeResponse(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -2949,13 +3082,6 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
-}
-
-func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋinblack67ᚋGQLGenAPIᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._User(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

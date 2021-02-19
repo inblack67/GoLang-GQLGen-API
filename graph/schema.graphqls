@@ -24,10 +24,15 @@ input LoginParams {
   username: String!
 } 
 
+type GetMeResponse {
+  username: String!
+  id: String!
+}
+
 type Query {
   hello: Hello!
   users: [User!]!
-  getMe: User
+  getMe: GetMeResponse
 }
 
 type Mutation {

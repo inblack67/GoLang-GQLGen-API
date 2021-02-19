@@ -2,6 +2,11 @@
 
 package model
 
+type GetMeResponse struct {
+	Username string `json:"username"`
+	ID       string `json:"id"`
+}
+
 type Hello struct {
 	Reply string `json:"reply"`
 }
