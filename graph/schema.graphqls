@@ -1,0 +1,7 @@
+type Hello {
+  reply: String!
+}
+
+type Query {
+  hello: Hello
+}
