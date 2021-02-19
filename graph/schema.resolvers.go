@@ -6,7 +6,7 @@ package graph
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log"
 	"time"
 
@@ -19,7 +19,9 @@ import (
 	"github.com/inblack67/GQLGenAPI/graph/model"
 	"github.com/inblack67/GQLGenAPI/middlewares"
 	"github.com/inblack67/GQLGenAPI/mymodels"
+	"github.com/inblack67/GQLGenAPI/types"
 	"github.com/inblack67/GQLGenAPI/utils"
+	"gorm.io/gorm"
 )
 
 func (r *mutationResolver) RegisterUser(ctx context.Context, input model.RegisterParams) (bool, error) {
@@ -64,38 +66,79 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 	return true, nil
 }
 
-func (r *queryResolver) Hello(ctx context.Context) (*model.Hello, error) {
+func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginParams) (bool, error) {
+	_, ctxErr := middlewares.GetUserFromCtx(ctx)
 
-	myUser, err := middlewares.GetUserFromCtx(ctx)
-
-	fmt.Println("myuser lol", myUser)
-
-	if err != nil {
-		log.Fatal("not auth")
+	if ctxErr == nil {
+		return false, errors.New(constants.KNotAuthorized)
 	}
 
+	var user = new(mymodels.User)
+
+	err := db.PgConn.Find(&user, mymodels.User{Username: input.Username}).Error
+
+	if err != nil {
+		return false, errors.New(err.Error())
+	}
+
+	notFoundErr := errors.Is(err, gorm.ErrRecordNotFound)
+	if notFoundErr || (user.Username == "") {
+		return false, errors.New(constants.KInvalidCredentials)
+	}
+
+	isValidPassword, argonErr := argon2id.ComparePasswordAndHash(input.Password, user.Password)
+
+	if argonErr != nil {
+		return false, errors.New(argonErr.Error())
+	}
+
+	if !isValidPassword {
+		return false, errors.New(constants.KInvalidCredentials)
+	}
+
+	sessionData := new(types.SSession)
+
+	sessionData.ID = user.ID
+	sessionData.Username = user.Username
+
+	marshalledSessionData, marshallErr := json.Marshal(sessionData)
+
+	if marshallErr != nil {
+		return false, errors.New(marshallErr.Error())
+	}
+
+	setErr := cache.RedisClient.Set(context.Background(), constants.KAuthSession, marshalledSessionData, time.Hour*24).Err()
+
+	if setErr != nil {
+		return false, errors.New(setErr.Error())
+	}
+
+	return true, nil
+}
+
+func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
+	_, err := middlewares.GetUserFromCtx(ctx)
+
+	if err != nil {
+		return false, err
+	}
+
+	delErr := cache.RedisClient.Del(context.Background(), constants.KAuthSession).Err()
+
+	if delErr != nil {
+		return false, delErr
+	}
+
+	return true, nil
+}
+
+func (r *queryResolver) Hello(ctx context.Context) (*model.Hello, error) {
 	return &model.Hello{
-		Reply: myUser,
+		Reply: "myUser",
 	}, nil
-
-	// data  := ctx.Value(constants.KCurrentUser)
-	// fmt.Println("woah", data)
-
-	// reply, ok := data.(string)
-
-	// if !ok{
-	// 	return &model.Hello{
-	// 	Reply: string("worlds"),
-	// }, nil
-	// }
-
-	// return &model.Hello{
-	// 	Reply: string(reply),
-	// }, nil
 }
 
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
-
 	cachedMarshalledUsers, getErr := cache.RedisClient.Get(context.Background(), constants.KGetUsers).Result()
 
 	// not in redis yet => query goes to db
@@ -111,25 +154,25 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 
 		for _, v := range dbUsers {
 			users = append(users, &model.User{
-				Name:     v.Name,
-				Email:    v.Email,
-				Username: v.Username,
+				Name:      v.Name,
+				Email:     v.Email,
+				Username:  v.Username,
 				CreatedAt: v.CreatedAt.String(),
 				UpdatedAt: v.UpdatedAt.String(),
 				DeletedAt: v.DeletedAt.Time.String(),
-				UUID: v.UUID,
+				UUID:      v.UUID,
 			})
 		}
 
-		marshalledUsers, marshallErr  := json.Marshal(users)
+		marshalledUsers, marshallErr := json.Marshal(users)
 
-		if marshallErr != nil{
+		if marshallErr != nil {
 			log.Fatal("marshallErr", marshallErr)
 		}
 
-		setErr := cache.RedisClient.Set(context.Background(), constants.KGetUsers, marshalledUsers, time.Hour * 24).Err()
+		setErr := cache.RedisClient.Set(context.Background(), constants.KGetUsers, marshalledUsers, time.Hour*24).Err()
 
-		if setErr != nil{
+		if setErr != nil {
 			log.Fatal("setErr", setErr)
 		}
 
@@ -143,11 +186,44 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 
 	unmarshalErr := json.Unmarshal([]byte(cachedMarshalledUsers), &cachedUsers)
 
-	if unmarshalErr != nil{
+	if unmarshalErr != nil {
 		log.Fatal("unmarshalErr", unmarshalErr)
 	}
 
 	return cachedUsers, nil
+}
+
+func (r *queryResolver) GetMe(ctx context.Context) (*model.User, error) {
+	ctxUser, err := middlewares.GetUserFromCtx(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var user = new(mymodels.User)
+
+	dbErr := db.PgConn.Find(&user, ctxUser.ID).Error
+
+	if dbErr != nil {
+		return nil, dbErr
+	}
+
+	notFoundErr := errors.Is(err, gorm.ErrRecordNotFound)
+	if notFoundErr {
+		return nil, errors.New("User does not exist")
+	}
+
+	sendUser := new(model.User)
+
+	sendUser.Name = user.Name
+	sendUser.Email = user.Email
+	sendUser.Username = user.Username
+	sendUser.CreatedAt = user.CreatedAt.String()
+	sendUser.UpdatedAt = user.UpdatedAt.String()
+	sendUser.DeletedAt = user.DeletedAt.Time.String()
+	sendUser.UUID = user.UUID
+
+	return sendUser, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

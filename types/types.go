@@ -1,10 +1,9 @@
 package types
 
-import "github.com/inblack67/GQLGenAPI/mymodels"
-
 // SSession ...
 type SSession struct{
-	User mymodels.User
+	Username string
+	ID uint 
 }
 
 // Status ...

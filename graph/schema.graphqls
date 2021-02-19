@@ -19,11 +19,19 @@ input RegisterParams {
   username: String!
 }
 
+input LoginParams {
+  password: String!
+  username: String!
+} 
+
 type Query {
   hello: Hello!
   users: [User!]!
+  getMe: User
 }
 
 type Mutation {
   registerUser(input: RegisterParams!): Boolean!
+  loginUser(input: LoginParams!): Boolean!
+  logoutUser: Boolean!
 }
