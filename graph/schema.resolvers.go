@@ -5,7 +5,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/alexedwards/argon2id"
@@ -44,7 +43,7 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 		log.Fatalf(errUUID.Error())
 	}
 
-	strUUID := fmt.Sprintf("%v", myuuid)
+	strUUID := myuuid.String()
 
 	newUser.Password = hashedPassword
 	newUser.UUID = strUUID
