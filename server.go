@@ -25,6 +25,8 @@ func main() {
 	cache.StartRedis()
 	db.ConnectDB()
 	mysession.InitSessionStore()
+	cache.PopulateUsers()
+	cache.PopulateStories()
 
 	port := os.Getenv("PORT")
 	if port == "" {

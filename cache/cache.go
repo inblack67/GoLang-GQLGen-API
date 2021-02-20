@@ -2,9 +2,12 @@ package cache
 
 import (
 	"context"
+	"log"
 
 	"github.com/fatih/color"
 	"github.com/go-redis/redis/v8"
+	"github.com/inblack67/GQLGenAPI/db"
+	"github.com/inblack67/GQLGenAPI/mymodels"
 )
 
 // RedisClient ...
@@ -13,7 +16,7 @@ var (
 )
 
 // StartRedis ...
-func StartRedis() (context.Context){
+func StartRedis() (context.Context) {
 	RedisClient = redis.NewClient(&redis.Options{})
 
 	color.Blue("Redis is here")
@@ -25,16 +28,34 @@ func StartRedis() (context.Context){
 	return  ctx
 }
 
-// SET ...
-func SET(key string, value string) error{
-	ctx := StartRedis()
-	err := RedisClient.Set(ctx, key, value, 0).Err()
-	return err
+// PopulateUsers ...
+func PopulateUsers () error {
+	var dbUsers []*mymodels.User
+
+	err := db.PgConn.Find(&dbUsers).Error
+
+	if err != nil {
+		log.Println("err populating users in redis = ", err)
+		return err
+	}
+
+	color.HiGreen("users populated in redis")
+
+	return nil
 }
 
-// GET ...
-func GET(key string) (string, error){
-	ctx := StartRedis()
-	val , err := RedisClient.Get(ctx, key).Result()
-	return val, err
+// PopulateStories ...
+func PopulateStories () error {
+	var dbStories []*mymodels.Story
+
+	err := db.PgConn.Find(&dbStories).Error
+
+	if err != nil {
+		log.Println("err populating stories in redis = ", err)
+		return err
+	}
+
+	color.HiGreen("stories populated in redis")
+
+	return nil
 }
