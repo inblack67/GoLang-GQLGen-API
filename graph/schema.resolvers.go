@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -69,7 +70,6 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 }
 
 func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginParams) (bool, error) {
-
 	myCtx := ctx.Value(constants.KMyContext).(types.MyCtx)
 
 	sessionData, sessionErr := mysession.GetSessionData(myCtx.ResponseWriter, myCtx.Request, constants.KCurrentUser)
@@ -106,9 +106,9 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginParam
 	maxAge := int(time.Hour) * 24
 
 	newSessionData := types.SSession{
-		ID: user.ID,
+		ID:       user.ID,
 		Username: user.Username,
-		UUID: user.UUID,
+		UUID:     user.UUID,
 	}
 
 	sessErr := mysession.SetSessionData(myCtx.ResponseWriter, myCtx.Request, newSessionData, maxAge)
@@ -122,7 +122,6 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginParam
 }
 
 func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
-
 	myCtx := ctx.Value(constants.KMyContext).(types.MyCtx)
 
 	_, sessionErr := mysession.GetSessionData(myCtx.ResponseWriter, myCtx.Request, constants.KCurrentUser)
@@ -147,7 +146,7 @@ func (r *queryResolver) Hello(ctx context.Context) (*model.Hello, error) {
 	}, nil
 }
 
-func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
+func (r *queryResolver) Users(ctx context.Context) ([]*mymodels.User, error) {
 	cachedMarshalledUsers, getErr := cache.RedisClient.Get(ctx, constants.KGetUsers).Result()
 
 	// not in redis yet => query goes to db
@@ -155,25 +154,11 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 
 		defer utils.Elapsed("db query => users")()
 
-		var dbUsers []mymodels.User
+		var dbUsers []*mymodels.User
 
 		dbc := db.PgConn.Find(&dbUsers)
 
-		var users []*model.User
-
-		for _, v := range dbUsers {
-			users = append(users, &model.User{
-				Name:      v.Name,
-				Email:     v.Email,
-				Username:  v.Username,
-				CreatedAt: v.CreatedAt.String(),
-				UpdatedAt: v.UpdatedAt.String(),
-				DeletedAt: v.DeletedAt.Time.String(),
-				UUID:      v.UUID,
-			})
-		}
-
-		marshalledUsers, marshallErr := json.Marshal(users)
+		marshalledUsers, marshallErr := json.Marshal(dbUsers)
 
 		if marshallErr != nil {
 			log.Fatal("marshallErr", marshallErr)
@@ -185,13 +170,13 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 			log.Fatal("setErr", setErr)
 		}
 
-		return users, dbc.Error
+		return dbUsers, dbc.Error
 	}
 
 	defer utils.Elapsed("redis query => users")()
 
 	// cached
-	var cachedUsers []*model.User
+	var cachedUsers []*mymodels.User
 
 	unmarshalErr := json.Unmarshal([]byte(cachedMarshalledUsers), &cachedUsers)
 
@@ -203,6 +188,8 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 }
 
 func (r *queryResolver) GetMe(ctx context.Context) (*model.GetMeResponse, error) {
+
+	defer utils.Elapsed("redis => getMe query")()
 
 	myCtx := ctx.Value(constants.KMyContext).(types.MyCtx)
 
@@ -220,11 +207,27 @@ func (r *queryResolver) GetMe(ctx context.Context) (*model.GetMeResponse, error)
 	return sendUser, nil
 }
 
+func (r *userResolver) CreatedAt(ctx context.Context, obj *mymodels.User) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *userResolver) UpdatedAt(ctx context.Context, obj *mymodels.User) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *userResolver) DeletedAt(ctx context.Context, obj *mymodels.User) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// User returns generated.UserResolver implementation.
+func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
+
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type userResolver struct{ *Resolver }
