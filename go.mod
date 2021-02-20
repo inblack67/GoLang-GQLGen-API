@@ -15,6 +15,7 @@ require (
 	github.com/rbcervilla/redisstore/v8 v8.0.0
 	github.com/rs/cors v1.7.0
 	github.com/vektah/gqlparser/v2 v2.1.0
+	golang.org/x/net v0.0.0-20210220033124-5f55cee0dc0d // indirect
 	gorm.io/driver/postgres v1.0.8
 	gorm.io/gorm v1.20.12
 )
