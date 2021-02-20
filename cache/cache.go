@@ -2,8 +2,8 @@ package cache
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/fatih/color"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -15,7 +15,8 @@ var (
 // StartRedis ...
 func StartRedis() (context.Context){
 	RedisClient = redis.NewClient(&redis.Options{})
-	fmt.Println("Redis is here")
+
+	color.Blue("Redis is here")
 
 	ctx := context.Background()
 

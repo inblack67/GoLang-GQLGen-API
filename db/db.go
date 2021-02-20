@@ -1,8 +1,7 @@
 package db
 
 import (
-	"fmt"
-
+	"github.com/fatih/color"
 	"github.com/inblack67/GQLGenAPI/mymodels"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -22,6 +21,6 @@ func ConnectDB() (*gorm.DB){
 		panic(err)
 	}
 	PgConn.AutoMigrate(&mymodels.User{})
-	fmt.Println("Postgres is here")
+	color.Green("Postgres is here")
 	return PgConn
 }
