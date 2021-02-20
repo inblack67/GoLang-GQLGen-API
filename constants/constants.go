@@ -47,3 +47,9 @@ var KMyContext = "KMyContext"
 
 // InternalServerError ...
 var InternalServerError = "INTERNAL_SERVER_ERROR"
+
+// KStories ...
+var KStories = "KStories"
+
+// KUsers ...
+var KUsers = "KUsers"
