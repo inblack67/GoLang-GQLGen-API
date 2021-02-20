@@ -4,7 +4,7 @@ type Hello {
 
 type Story {
   title: String!
-  userId: Float!
+  userId: String!
   createdAt: String!
   updatedAt: String!
   deletedAt: String!

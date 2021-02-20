@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -65,6 +64,8 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 	if userCreationErr != nil {
 		return false, userCreationErr
 	}
+
+	cache.PopulateUsers()
 
 	return true, nil
 }
@@ -141,7 +142,47 @@ func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
 }
 
 func (r *mutationResolver) CreateStory(ctx context.Context, input model.CreateStoryParams) (bool, error) {
-	panic(fmt.Errorf("not implemented"))
+	myCtx := ctx.Value(constants.KMyContext).(types.MyCtx)
+
+	sessionData, sessionErr := mysession.GetSessionData(myCtx.ResponseWriter, myCtx.Request, constants.KCurrentUser)
+
+	if sessionErr != nil {
+		return false, sessionErr
+	}
+
+	myuuid, errUUID := uuid.NewV4()
+
+	if errUUID != nil {
+		log.Println("errUUID = ", errUUID)
+		return false, errors.New(constants.InternalServerError)
+	}
+
+	var newStory = new(mymodels.Story)
+
+	newStory = &mymodels.Story{
+		Title:  input.Title,
+		UUID:   myuuid,
+		UserID: sessionData.ID,
+		UserUUID: sessionData.UUID,
+	}
+
+	validationErr := newStory.ValidateStory()
+
+	if validationErr != nil {
+		return false, validationErr
+	}
+
+	storyCreationErr := db.PgConn.Create(&newStory).Error
+
+	if storyCreationErr != nil {
+		return false, storyCreationErr
+	}
+
+	// updating cache
+	cache.PopulateStories()
+	cache.PopulateUsers()
+
+	return true, nil
 }
 
 func (r *queryResolver) Hello(ctx context.Context) (*model.Hello, error) {
@@ -212,8 +253,8 @@ func (r *queryResolver) Stories(ctx context.Context) ([]*mymodels.Story, error) 
 	return stories, nil
 }
 
-func (r *storyResolver) UserID(ctx context.Context, obj *mymodels.Story) (float64, error) {
-	return float64(obj.UserID), nil
+func (r *storyResolver) UserID(ctx context.Context, obj *mymodels.Story) (string, error) {
+	return obj.UserUUID, nil
 }
 
 func (r *storyResolver) CreatedAt(ctx context.Context, obj *mymodels.Story) (string, error) {

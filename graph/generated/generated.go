@@ -103,7 +103,7 @@ type QueryResolver interface {
 	Stories(ctx context.Context) ([]*mymodels.Story, error)
 }
 type StoryResolver interface {
-	UserID(ctx context.Context, obj *mymodels.Story) (float64, error)
+	UserID(ctx context.Context, obj *mymodels.Story) (string, error)
 	CreatedAt(ctx context.Context, obj *mymodels.Story) (string, error)
 	UpdatedAt(ctx context.Context, obj *mymodels.Story) (string, error)
 	DeletedAt(ctx context.Context, obj *mymodels.Story) (string, error)
@@ -390,7 +390,7 @@ var sources = []*ast.Source{
 
 type Story {
   title: String!
-  userId: Float!
+  userId: String!
   createdAt: String!
   updatedAt: String!
   deletedAt: String!
@@ -1086,9 +1086,9 @@ func (ec *executionContext) _Story_userId(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(float64)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Story_createdAt(ctx context.Context, field graphql.CollectedField, obj *mymodels.Story) (ret graphql.Marshaler) {
@@ -3329,21 +3329,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 func (ec *executionContext) unmarshalNCreateStoryParams2githubᚗcomᚋinblack67ᚋGQLGenAPIᚋgraphᚋmodelᚐCreateStoryParams(ctx context.Context, v interface{}) (model.CreateStoryParams, error) {
 	res, err := ec.unmarshalInputCreateStoryParams(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
-	res, err := graphql.UnmarshalFloat(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
-	res := graphql.MarshalFloat(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-	}
-	return res
 }
 
 func (ec *executionContext) marshalNHello2githubᚗcomᚋinblack67ᚋGQLGenAPIᚋgraphᚋmodelᚐHello(ctx context.Context, sel ast.SelectionSet, v model.Hello) graphql.Marshaler {

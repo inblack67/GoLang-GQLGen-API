@@ -34,7 +34,7 @@ func StartRedis() (context.Context) {
 func PopulateUsers () error {
 	var dbUsers []*mymodels.User
 
-	err := db.PgConn.Find(&dbUsers).Error
+	err := db.PgConn.Preload("Stories").Find(&dbUsers).Error
 
 	if err != nil {
 		log.Println("err populating users in redis = ", err)
