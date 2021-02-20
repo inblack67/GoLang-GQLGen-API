@@ -7,9 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/alexedwards/argon2id"
@@ -19,8 +17,8 @@ import (
 	"github.com/inblack67/GQLGenAPI/db"
 	"github.com/inblack67/GQLGenAPI/graph/generated"
 	"github.com/inblack67/GQLGenAPI/graph/model"
-	"github.com/inblack67/GQLGenAPI/middlewares"
 	"github.com/inblack67/GQLGenAPI/mymodels"
+	"github.com/inblack67/GQLGenAPI/mysession"
 	"github.com/inblack67/GQLGenAPI/types"
 	"github.com/inblack67/GQLGenAPI/utils"
 	"gorm.io/gorm"
@@ -45,13 +43,15 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 	hashedPassword, hashErr := argon2id.CreateHash(input.Password, argon2id.DefaultParams)
 
 	if hashErr != nil {
-		log.Fatalf(hashErr.Error())
+		log.Println("hashErr = ", hashErr)
+		return false, errors.New(constants.InternalServerError)
 	}
 
 	myuuid, errUUID := uuid.NewV4()
 
 	if errUUID != nil {
-		log.Fatalf(errUUID.Error())
+		log.Println("errUUID = ", errUUID)
+		return false, errors.New(constants.InternalServerError)
 	}
 
 	strUUID := myuuid.String()
@@ -69,9 +69,13 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 }
 
 func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginParams) (bool, error) {
-	isAuth := middlewares.IsAuthenticated(ctx)
 
-	if isAuth {
+	myCtx := ctx.Value(constants.KMyContext).(types.MyCtx)
+
+	sessionData, sessionErr := mysession.GetSessionData(myCtx.ResponseWriter, myCtx.Request, constants.KCurrentUser)
+
+	// already logged in
+	if sessionErr == nil && sessionData != nil {
 		return false, errors.New(constants.KNotAuthorized)
 	}
 
@@ -80,7 +84,7 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginParam
 	err := db.PgConn.Find(&user, mymodels.User{Username: input.Username}).Error
 
 	if err != nil {
-		return false, errors.New(err.Error())
+		return false, err
 	}
 
 	notFoundErr := errors.Is(err, gorm.ErrRecordNotFound)
@@ -91,95 +95,55 @@ func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginParam
 	isValidPassword, argonErr := argon2id.ComparePasswordAndHash(input.Password, user.Password)
 
 	if argonErr != nil {
-		return false, errors.New(argonErr.Error())
+		log.Println("argonErr = ", argonErr)
+		return false, errors.New(constants.InternalServerError)
 	}
 
 	if !isValidPassword {
 		return false, errors.New(constants.KInvalidCredentials)
 	}
 
-	sessionData := new(types.SSession)
+	maxAge := int(time.Hour) * 24
 
-	sessionData.ID = user.ID
-	sessionData.Username = user.Username
-	sessionData.UUID = user.UUID
-
-	marshalledSessionData, marshallErr := json.Marshal(sessionData)
-
-	if marshallErr != nil {
-		return false, errors.New(marshallErr.Error())
+	newSessionData := types.SSession{
+		ID: user.ID,
+		Username: user.Username,
+		UUID: user.UUID,
 	}
 
-	setErr := cache.RedisClient.Set(ctx, constants.KCurrentUser, marshalledSessionData, time.Hour*24).Err()
+	sessErr := mysession.SetSessionData(myCtx.ResponseWriter, myCtx.Request, newSessionData, maxAge)
 
-	uuid, uuidErr := uuid.NewV4()
-
-	token := fmt.Sprint(uuid)
-
-	if uuidErr != nil {
-		log.Fatal(uuidErr.Error())
+	if sessErr != nil {
+		log.Println("sessErr = ", sessErr)
+		return false, errors.New(constants.InternalServerError)
 	}
-
-	setErr2 := cache.RedisClient.Set(ctx, constants.KAuthSession, token, time.Hour*24).Err()
-
-	if setErr != nil {
-		log.Fatal(setErr.Error())
-	}
-
-	if setErr2 != nil {
-		log.Fatal(setErr2.Error())
-	}
-
-	myCtx := ctx.Value(constants.KMyContext).(types.MyCtx)
-
-	http.SetCookie(myCtx.ResponseWriter, &http.Cookie{
-		Name:     constants.KAuthSession,
-		Value:    token,
-		Expires:  time.Now().AddDate(0, 0, 1),
-		MaxAge:   int(time.Hour) * 24,
-		SameSite: http.SameSiteLaxMode,
-	})
 
 	return true, nil
 }
 
 func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
-	isAuth := middlewares.IsAuthenticated(ctx)
-
-	if !isAuth {
-		return false, errors.New(constants.KNotAuthenticated)
-	}
-
-	delErr := cache.RedisClient.Del(ctx, constants.KAuthSession).Err()
-
-	delErr2 := cache.RedisClient.Del(ctx, constants.KCurrentUser).Err()
-
-	if delErr != nil {
-		log.Fatal(delErr)
-	}
-
-	if delErr2 != nil {
-		log.Fatal(delErr2)
-	}
 
 	myCtx := ctx.Value(constants.KMyContext).(types.MyCtx)
 
-	// delete cookie
-	http.SetCookie(myCtx.ResponseWriter, &http.Cookie{
-		Name:     constants.KAuthSession,
-		Value:    "nil",
-		Expires:  time.Now(),
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-		MaxAge:   -1,
-	})
+	_, sessionErr := mysession.GetSessionData(myCtx.ResponseWriter, myCtx.Request, constants.KCurrentUser)
+
+	if sessionErr != nil {
+		return false, sessionErr
+	}
+
+	err := mysession.DestroySession(myCtx.ResponseWriter, myCtx.Request)
+
+	if err != nil {
+		log.Println("destroy session err = ", err)
+		return false, errors.New(constants.InternalServerError)
+	}
 
 	return true, nil
 }
 
 func (r *queryResolver) Hello(ctx context.Context) (*model.Hello, error) {
 	return &model.Hello{
-		Reply: "myUser",
+		Reply: "worlds",
 	}, nil
 }
 
@@ -239,22 +203,19 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 }
 
 func (r *queryResolver) GetMe(ctx context.Context) (*model.GetMeResponse, error) {
-	isAuth := middlewares.IsAuthenticated(ctx)
 
-	if !isAuth {
-		return nil, errors.New(constants.KNotAuthenticated)
-	}
+	myCtx := ctx.Value(constants.KMyContext).(types.MyCtx)
 
-	ctxUser, err := middlewares.GetUserFromCtx(ctx)
+	sessionData, sessionErr := mysession.GetSessionData(myCtx.ResponseWriter, myCtx.Request, constants.KCurrentUser)
 
-	if err != nil {
-		return nil, err
+	if sessionErr != nil {
+		return nil, sessionErr
 	}
 
 	sendUser := new(model.GetMeResponse)
 
-	sendUser.ID = ctxUser.UUID
-	sendUser.Username = ctxUser.Username
+	sendUser.ID = sessionData.UUID
+	sendUser.Username = sessionData.Username
 
 	return sendUser, nil
 }

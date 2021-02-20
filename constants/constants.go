@@ -44,3 +44,6 @@ var Response = "Response"
 
 // KMyContext ...
 var KMyContext = "KMyContext"
+
+// InternalServerError ...
+var InternalServerError = "INTERNAL_SERVER_ERROR"
