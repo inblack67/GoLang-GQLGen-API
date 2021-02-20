@@ -14,6 +14,7 @@ type Story struct{
 	Title string `json:"title,omitempty" gorm:"unique;not null;default:null"`
 	UserID uint `json:"-" gorm:"not null"`
 	UserUUID string `json:"userId" gorm:"not null"`
+	User User `json:"user"`
 }
 
 // ValidateStory ...

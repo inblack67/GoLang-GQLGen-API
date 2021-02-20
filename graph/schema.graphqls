@@ -9,6 +9,7 @@ type Story {
   updatedAt: String!
   deletedAt: String!
   uuid: String!
+  user: User!
 }
 
 type User {

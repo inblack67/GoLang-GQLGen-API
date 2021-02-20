@@ -75,6 +75,7 @@ type ComplexityRoot struct {
 		Title     func(childComplexity int) int
 		UUID      func(childComplexity int) int
 		UpdatedAt func(childComplexity int) int
+		User      func(childComplexity int) int
 		UserID    func(childComplexity int) int
 	}
 
@@ -257,6 +258,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Story.UpdatedAt(childComplexity), true
 
+	case "Story.user":
+		if e.complexity.Story.User == nil {
+			break
+		}
+
+		return e.complexity.Story.User(childComplexity), true
+
 	case "Story.userId":
 		if e.complexity.Story.UserID == nil {
 			break
@@ -395,6 +403,7 @@ type Story {
   updatedAt: String!
   deletedAt: String!
   uuid: String!
+  user: User!
 }
 
 type User {
@@ -1229,6 +1238,41 @@ func (ec *executionContext) _Story_uuid(ctx context.Context, field graphql.Colle
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Story_user(ctx context.Context, field graphql.CollectedField, obj *mymodels.Story) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Story",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(mymodels.User)
+	fc.Result = res
+	return ec.marshalNUser2githubᚗcomᚋinblack67ᚋGQLGenAPIᚋmymodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *mymodels.User) (ret graphql.Marshaler) {
@@ -2969,6 +3013,11 @@ func (ec *executionContext) _Story(ctx context.Context, sel ast.SelectionSet, ob
 				}
 				return res
 			})
+		case "user":
+			out.Values[i] = ec._Story_user(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3415,6 +3464,10 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNUser2githubᚗcomᚋinblack67ᚋGQLGenAPIᚋmymodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v mymodels.User) graphql.Marshaler {
+	return ec._User(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋinblack67ᚋGQLGenAPIᚋmymodelsᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*mymodels.User) graphql.Marshaler {

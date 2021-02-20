@@ -160,9 +160,9 @@ func (r *mutationResolver) CreateStory(ctx context.Context, input model.CreateSt
 	var newStory = new(mymodels.Story)
 
 	newStory = &mymodels.Story{
-		Title:  input.Title,
-		UUID:   myuuid,
-		UserID: sessionData.ID,
+		Title:    input.Title,
+		UUID:     myuuid,
+		UserID:   sessionData.ID,
 		UserUUID: sessionData.UUID,
 	}
 
@@ -234,6 +234,8 @@ func (r *queryResolver) GetMe(ctx context.Context) (*model.GetMeResponse, error)
 }
 
 func (r *queryResolver) Stories(ctx context.Context) ([]*mymodels.Story, error) {
+	defer utils.Elapsed("redis query => stories")()
+
 	marshalledStories, err := cache.RedisClient.Get(ctx, constants.KStories).Result()
 
 	if err != nil {

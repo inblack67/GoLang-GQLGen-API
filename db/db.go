@@ -27,7 +27,7 @@ func ConnectDB() (*gorm.DB){
 	newLogger := logger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags), 
 		logger.Config{
-			SlowThreshold: time.Microsecond, 	// to make it all queries log  
+			SlowThreshold: time.Second,
 			LogLevel:      logger.Info, 
 			Colorful:      true,         
 		},

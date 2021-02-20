@@ -64,7 +64,7 @@ func PopulateUsers () error {
 func PopulateStories () error {
 	var dbStories []*mymodels.Story
 
-	err := db.PgConn.Find(&dbStories).Error
+	err := db.PgConn.Preload("User").Find(&dbStories).Error
 
 	if err != nil {
 		log.Println("err populating stories in redis = ", err)
