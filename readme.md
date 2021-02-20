@@ -4,7 +4,7 @@
     - Register
     - Login
     - Logout
-    - CRUD Stories
+    - Create Stories
     - Relationships
 
 ### Tech Stack
