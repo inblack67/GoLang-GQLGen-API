@@ -7,7 +7,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/go-chi/chi"
+	"github.com/gorilla/mux"
 	"github.com/inblack67/GQLGenAPI/cache"
 	"github.com/inblack67/GQLGenAPI/db"
 	"github.com/inblack67/GQLGenAPI/graph"
@@ -28,7 +28,7 @@ func main() {
 		port = defaultPort
 	}
 
-	router := chi.NewRouter()
+	router := mux.NewRouter()
 
 	router.Use(
 		cors.New(cors.Options{
@@ -38,8 +38,6 @@ func main() {
 		}).Handler,
 	)
 
-	// router.Use(middleware.RequestID)
-	// router.Use(middleware.Logger)
 	router.Use(middlewares.AuthMiddleware())
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
