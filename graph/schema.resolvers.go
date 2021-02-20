@@ -151,30 +151,11 @@ func (r *queryResolver) Hello(ctx context.Context) (*model.Hello, error) {
 }
 
 func (r *queryResolver) Users(ctx context.Context) ([]*mymodels.User, error) {
-	cachedMarshalledUsers, getErr := cache.RedisClient.Get(ctx, constants.KGetUsers).Result()
+	cachedMarshalledUsers, getErr := cache.RedisClient.Get(ctx, constants.KUsers).Result()
 
-	// not in redis yet => query goes to db
 	if getErr != nil {
-
-		defer utils.Elapsed("db query => users")()
-
-		var dbUsers []*mymodels.User
-
-		dbc := db.PgConn.Find(&dbUsers)
-
-		marshalledUsers, marshallErr := json.Marshal(dbUsers)
-
-		if marshallErr != nil {
-			log.Fatal("marshallErr", marshallErr)
-		}
-
-		setErr := cache.RedisClient.Set(ctx, constants.KGetUsers, marshalledUsers, time.Hour*24).Err()
-
-		if setErr != nil {
-			log.Fatal("setErr", setErr)
-		}
-
-		return dbUsers, dbc.Error
+		log.Println("redis get err = ", getErr)
+		return nil, errors.New(constants.InternalServerError)
 	}
 
 	defer utils.Elapsed("redis query => users")()
@@ -186,6 +167,7 @@ func (r *queryResolver) Users(ctx context.Context) ([]*mymodels.User, error) {
 
 	if unmarshalErr != nil {
 		log.Fatal("unmarshalErr", unmarshalErr)
+		return nil, errors.New(constants.InternalServerError)
 	}
 
 	return cachedUsers, nil
@@ -211,39 +193,55 @@ func (r *queryResolver) GetMe(ctx context.Context) (*model.GetMeResponse, error)
 }
 
 func (r *queryResolver) Stories(ctx context.Context) ([]*mymodels.Story, error) {
-	panic(fmt.Errorf("not implemented"))
+	marshalledStories, err := cache.RedisClient.Get(ctx, constants.KStories).Result()
+
+	if err != nil {
+		log.Println("redis get err", err)
+		return nil, errors.New(constants.InternalServerError)
+	}
+
+	var stories []*mymodels.Story
+
+	unmarshallErr := json.Unmarshal([]byte(marshalledStories), &stories)
+
+	if err != nil {
+		log.Println("redis unmarshallErr", unmarshallErr)
+		return nil, errors.New(constants.InternalServerError)
+	}
+
+	return stories, nil
 }
 
-func (r *storyResolver) UserID(ctx context.Context, obj *mymodels.Story) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *storyResolver) UserID(ctx context.Context, obj *mymodels.Story) (float64, error) {
+	return float64(obj.UserID), nil
 }
 
 func (r *storyResolver) CreatedAt(ctx context.Context, obj *mymodels.Story) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	return obj.CreatedAt.String(), nil
 }
 
 func (r *storyResolver) UpdatedAt(ctx context.Context, obj *mymodels.Story) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	return obj.UpdatedAt.String(), nil
 }
 
 func (r *storyResolver) DeletedAt(ctx context.Context, obj *mymodels.Story) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	return obj.DeletedAt.Time.String(), nil
 }
 
 func (r *storyResolver) UUID(ctx context.Context, obj *mymodels.Story) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	return obj.UUID.String(), nil
 }
 
 func (r *userResolver) CreatedAt(ctx context.Context, obj *mymodels.User) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	return obj.CreatedAt.String(), nil
 }
 
 func (r *userResolver) UpdatedAt(ctx context.Context, obj *mymodels.User) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	return obj.UpdatedAt.String(), nil
 }
 
 func (r *userResolver) DeletedAt(ctx context.Context, obj *mymodels.User) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	return obj.DeletedAt.Time.String(), nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

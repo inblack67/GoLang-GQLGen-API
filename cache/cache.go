@@ -78,7 +78,7 @@ func PopulateStories () error {
 		return marshallErr
 	}
 
-	setErr := RedisClient.Set(context.Background(), constants.KUsers, marshalledStories, 0).Err()		// dont expire on your own
+	setErr := RedisClient.Set(context.Background(), constants.KStories, marshalledStories, 0).Err()		// dont expire on your own
 
 	if setErr != nil {
 		log.Println("setErr = ", setErr)
