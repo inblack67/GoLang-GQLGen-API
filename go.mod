@@ -11,6 +11,7 @@ require (
 	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/sessions v1.2.1
+	github.com/rbcervilla/redisstore/v8 v8.0.0
 	github.com/rs/cors v1.7.0
 	github.com/vektah/gqlparser/v2 v2.1.0
 	gorm.io/driver/postgres v1.0.8

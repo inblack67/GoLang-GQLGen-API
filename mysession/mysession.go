@@ -1,25 +1,42 @@
 package mysession
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/sessions"
+	"github.com/inblack67/GQLGenAPI/cache"
 	"github.com/inblack67/GQLGenAPI/constants"
 	"github.com/inblack67/GQLGenAPI/types"
+	"github.com/rbcervilla/redisstore/v8"
 )
 
 var (
 	// SessionStore ...
-	SessionStore = sessions.NewCookieStore([]byte(constants.KSessionSecret))
+	SessionStore *redisstore.RedisStore
 )
+
+// InitSessionStore ...
+func InitSessionStore () (*redisstore.RedisStore, error) {
+	var storeErr error
+
+	SessionStore, storeErr = redisstore.NewRedisStore(context.Background(), cache.RedisClient)
+
+	if storeErr != nil {
+		log.Println("session redis store init err = ", storeErr)
+		return nil, storeErr
+	}
+
+	return SessionStore, nil
+}
 
 // DestroySession ...
 func DestroySession (res http.ResponseWriter, req *http.Request) error {
-
 	session, err := SessionStore.Get(req, constants.KAuthSession)
+
 	if err != nil {
 		log.Println("session get err = ", err)
 		return err
@@ -43,6 +60,7 @@ func DestroySession (res http.ResponseWriter, req *http.Request) error {
 func SetSessionData (res http.ResponseWriter, req *http.Request, data types.SSession, maxAge int) error {
 
 	session, err := SessionStore.Get(req, constants.KAuthSession)
+
 	if err != nil {
 		return err
 	}
@@ -72,9 +90,10 @@ func SetSessionData (res http.ResponseWriter, req *http.Request, data types.SSes
 }
 
 // GetSessionData ...
-func GetSessionData (res http.ResponseWriter, req *http.Request, key string) (*types.SSession, error) {
+func GetSessionData (_ http.ResponseWriter, req *http.Request, key string) (*types.SSession, error) {
 
 	session, err := SessionStore.Get(req, constants.KAuthSession)
+	
 	if err != nil {
 		log.Println("getting session err = ", err)
 		return nil, err

@@ -13,6 +13,7 @@ import (
 	"github.com/inblack67/GQLGenAPI/graph"
 	"github.com/inblack67/GQLGenAPI/graph/generated"
 	"github.com/inblack67/GQLGenAPI/middlewares"
+	"github.com/inblack67/GQLGenAPI/mysession"
 	"github.com/rs/cors"
 )
 
@@ -22,6 +23,7 @@ func main() {
 
 	cache.StartRedis()
 	db.ConnectDB()
+	mysession.InitSessionStore()
 
 	port := os.Getenv("PORT")
 	if port == "" {
