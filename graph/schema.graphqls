@@ -2,6 +2,15 @@ type Hello {
   reply: String!
 }
 
+type Story {
+  title: String!
+  userId: String!
+  createdAt: String!
+  updatedAt: String!
+  deletedAt: String!
+  uuid: String!
+}
+
 type User {
   name: String!
   email: String!
@@ -10,6 +19,7 @@ type User {
   updatedAt: String!
   deletedAt: String!
   uuid: String!
+  stories: [Story]
 }
 
 input RegisterParams {
@@ -33,10 +43,59 @@ type Query {
   hello: Hello!
   users: [User!]!
   getMe: GetMeResponse
+  stories: [Story!]!
+}
+
+input CreateStoryParams {
+  title: String!
 }
 
 type Mutation {
   registerUser(input: RegisterParams!): Boolean!
   loginUser(input: LoginParams!): Boolean!
   logoutUser: Boolean!
+  createStory(input: CreateStoryParams!): Boolean!
 }
+
+# type Hello {
+#   reply: String!
+# }
+
+# type User {
+#   name: String!
+#   email: String!
+#   username: String!
+#   createdAt: String!
+#   updatedAt: String!
+#   deletedAt: String!
+#   uuid: String!
+# }
+
+# input RegisterParams {
+#   name: String!
+#   email: String!
+#   password: String!
+#   username: String!
+# }
+
+# input LoginParams {
+#   password: String!
+#   username: String!
+# } 
+
+# type GetMeResponse {
+#   username: String!
+#   id: String!
+# }
+
+# type Query {
+#   hello: Hello!
+#   users: [User!]!
+#   getMe: GetMeResponse
+# }
+
+# type Mutation {
+#   registerUser(input: RegisterParams!): Boolean!
+#   loginUser(input: LoginParams!): Boolean!
+#   logoutUser: Boolean!
+# }

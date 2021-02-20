@@ -20,7 +20,7 @@ func ConnectDB() (*gorm.DB){
 	if err != nil{
 		panic(err)
 	}
-	PgConn.AutoMigrate(&mymodels.User{})
+	PgConn.AutoMigrate(&mymodels.User{}, &mymodels.Story{})
 	color.Green("Postgres is here")
 	return PgConn
 }

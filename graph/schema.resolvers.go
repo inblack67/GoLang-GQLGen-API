@@ -140,6 +140,10 @@ func (r *mutationResolver) LogoutUser(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
+func (r *mutationResolver) CreateStory(ctx context.Context, input model.CreateStoryParams) (bool, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Hello(ctx context.Context) (*model.Hello, error) {
 	return &model.Hello{
 		Reply: "worlds",
@@ -188,7 +192,6 @@ func (r *queryResolver) Users(ctx context.Context) ([]*mymodels.User, error) {
 }
 
 func (r *queryResolver) GetMe(ctx context.Context) (*model.GetMeResponse, error) {
-
 	defer utils.Elapsed("redis => getMe query")()
 
 	myCtx := ctx.Value(constants.KMyContext).(types.MyCtx)
@@ -205,6 +208,30 @@ func (r *queryResolver) GetMe(ctx context.Context) (*model.GetMeResponse, error)
 	sendUser.Username = sessionData.Username
 
 	return sendUser, nil
+}
+
+func (r *queryResolver) Stories(ctx context.Context) ([]*mymodels.Story, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *storyResolver) UserID(ctx context.Context, obj *mymodels.Story) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *storyResolver) CreatedAt(ctx context.Context, obj *mymodels.Story) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *storyResolver) UpdatedAt(ctx context.Context, obj *mymodels.Story) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *storyResolver) DeletedAt(ctx context.Context, obj *mymodels.Story) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *storyResolver) UUID(ctx context.Context, obj *mymodels.Story) (string, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *userResolver) CreatedAt(ctx context.Context, obj *mymodels.User) (string, error) {
@@ -225,9 +252,13 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// Story returns generated.StoryResolver implementation.
+func (r *Resolver) Story() generated.StoryResolver { return &storyResolver{r} }
+
 // User returns generated.UserResolver implementation.
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type storyResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }

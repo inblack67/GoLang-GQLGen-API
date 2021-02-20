@@ -15,6 +15,7 @@ type User struct{
 	Username string `json:"username,omitempty" gorm:"unique;not null;default:null"`
 	Email string `json:"email,omitempty" gorm:"unique;not null;default:null"`
 	Password string `json:"-" gorm:"not null;default:null"`
+	Stories []Story `json:"stories" gorm:"foreignKey:UserID"`
 }
 
 // ValidateMe ...

@@ -2,6 +2,10 @@
 
 package model
 
+type CreateStoryParams struct {
+	Title string `json:"title"`
+}
+
 type GetMeResponse struct {
 	Username string `json:"username"`
 	ID       string `json:"id"`

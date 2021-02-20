@@ -45,6 +45,8 @@ autobind:
 models:
   User: 
     model: github.com/inblack67/GQLGenAPI/mymodels.User
+  Story: 
+    model: github.com/inblack67/GQLGenAPI/mymodels.Story
   ID:
     model:
       - github.com/99designs/gqlgen/graphql.ID
